@@ -10,8 +10,10 @@ __artifacts_v2__ = {
         "notes": "",
         "paths": ('*/com.knuddels.android/databases/knuddels*',),
         "function": "get_knuddels_chats"
-    },
+    }
 }
+
+import re
 
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, timeline, is_platform_windows, open_sqlite_db_readonly
@@ -43,7 +45,8 @@ def get_knuddels_chats(files_found, report_folder, seeker, wrap_text):
 
             if usageentries > 0:
                 for row in all_rows:
-                    data_list.append((row[0], row[1], row[2], "chat_" + str(row[3]) + "_", file_found, row[4], row[5]))
+                    db_name = str(file_found).split("databases")[1].split("knuddels")[1]
+                    data_list.append((row[0], row[1], row[2], "chat_" + str(row[3]) + "_" + db_name, file_found, row[4], row[5])) # Store chat ID as a string for easy and distinct filtering  
 
             if len(data_list) > 0:
                 report = ArtifactHtmlReport('Knuddels Messages')
