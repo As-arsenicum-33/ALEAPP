@@ -8,12 +8,10 @@ __artifacts_v2__ = {
         "requirements": "none",
         "category": "Knuddels",
         "notes": "",
-        "paths": ('*/com.knuddels.android/databases/knuddels*',),
+        "paths": ("*/com.knuddels.android/databases/knuddels*"),
         "function": "get_knuddels_chats"
     }
 }
-
-import re
 
 from scripts.artifact_report import ArtifactHtmlReport
 from scripts.ilapfuncs import logfunc, tsv, timeline, is_platform_windows, open_sqlite_db_readonly
@@ -23,21 +21,21 @@ def get_knuddels_chats(files_found, report_folder, seeker, wrap_text):
     data_list = []
 
     for file_found in files_found:
+        logfunc("knuddels - chats found")
         file_found = str(file_found)
 
-        if(file_found.endswith("-journal")):
-            pass 
+        if file_found.lower().endswith(("-shm","-wal","-journal")):
+            pass
         else:
             db = open_sqlite_db_readonly(file_found)
             cursor = db.cursor()
             cursor.execute('''
             SELECT
             nickname, message, 
-            datetime(thread.timestamp/1000, 'unixepoch','localtime') AS "timestamp", cid AS "chat_id",
-            thread.sender AS "thread_table_user_id",
-            users.id AS "users_table_user_id"
+            datetime(thread.timestamp / 1000, "unixepoch"), cid,
+            thread.sender, users.id
             FROM thread, users
-            WHERE users.id = thread.sender 
+            WHERE users.id = thread.sender
             ''')
             
             all_rows = cursor.fetchall()
@@ -46,22 +44,21 @@ def get_knuddels_chats(files_found, report_folder, seeker, wrap_text):
             if usageentries > 0:
                 for row in all_rows:
                     db_name = str(file_found).split("databases")[1].split("knuddels")[1]
-                    data_list.append((row[0], row[1], row[2], "chat_" + str(row[3]) + "_" + db_name, file_found, row[4], row[5])) # Store chat ID as a string for easy and distinct filtering  
+                    # Store conversation keys as strings to ensure unique filtering, as the same ID might exist in a different database
+                    data_list.append((row[0], row[1], row[2], "chat_" + str(row[3]) + "_" + db_name, file_found, row[4], row[5])) 
 
             if len(data_list) > 0:
-                report = ArtifactHtmlReport('Knuddels Messages')
-                report.start_artifact_report(report_folder, f'Knuddels Messages')
+                report = ArtifactHtmlReport("Knuddels Messages")
+                report.start_artifact_report(report_folder, f"Knuddels Messages")
                 report.add_script()
-                data_headers = ('nickname', 'message', 'timestamp', 'chat_id', 'source database', 'thread_table_user_id', 'users_table_user_id')
-                report.write_artifact_data_table(data_headers, data_list, 'See report')
+                data_headers = ("User Name", "Message", "Timestamp", "Conversation Key", "Source", "Thread Table UID", "Users Table UID")
+                report.write_artifact_data_table(data_headers, data_list, "See report")
                 report.end_artifact_report()
                 
-                tsvname = f'Knuddels'
+                tsvname = f"Knuddels"
                 tsv(report_folder, data_headers, data_list, tsvname)
 
-                tlactivity = f'Knuddels'
+                tlactivity = f"Knuddels"
                 timeline(report_folder, tlactivity, data_list, data_headers)
-            else:
-                logfunc(f'No Knuddels Chats available')
 
 
